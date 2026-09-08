@@ -1,16 +1,12 @@
-from dotenv import load_dotenv
-import psycopg
-import os
 import shutil
 import uuid
 from pathlib import Path
+from database import get_db_connection
 from fastapi import FastAPI, UploadFile, File
 
 app = FastAPI()
 UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
-
-load_dotenv()
     
 @app.post("/videos/")
 async def upload_video(file: UploadFile = File(...)):
@@ -21,13 +17,7 @@ async def upload_video(file: UploadFile = File(...)):
     with file_path.open("wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    conn = psycopg.connect(
-        host=os.getenv("DB_HOST"),
-        port=os.getenv("DB_PORT"),
-        dbname=os.getenv("DB_NAME"),
-        user=os.getenv("DB_USER"),
-        password=os.getenv("DB_PASSWORD"),
-    )
+    conn = get_db_connection()
 
     cur = conn.cursor()
 

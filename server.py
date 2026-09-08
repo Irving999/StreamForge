@@ -44,6 +44,17 @@ async def upload_video(file: UploadFile = File(...)):
 
     video_id = cur.fetchone()[0]
 
+    cur.execute(
+        """
+        INSERT INTO jobs (video_id)
+        VALUES (%s)
+        RETURNING id;
+        """,
+        (video_id,)
+    )
+
+    job_id = cur.fetchone()[0]
+
     conn.commit()
 
     cur.close()
@@ -51,6 +62,7 @@ async def upload_video(file: UploadFile = File(...)):
 
     return {
         "video_id": video_id,
+        "job_id": job_id,
         "filename": file.filename,
         "content-type": file.content_type,
         "size": file.size,

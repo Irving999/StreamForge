@@ -1,5 +1,6 @@
-import shutil
 import uuid
+import shutil
+import psycopg
 from pathlib import Path
 from job_queue import enqueue_job
 from jobs import get_job, create_video_and_job
@@ -18,13 +19,20 @@ async def upload_video(file: UploadFile = File(...)):
     with file_path.open("wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    video_id, job_id = create_video_and_job(
-        file.filename,
-        safe_filename,
-        str(file_path),
-        file.content_type,
-        file.size,
-    )
+    try:
+        video_id, job_id = create_video_and_job(
+            file.filename,
+            safe_filename,
+            str(file_path),
+            file.content_type,
+            file.size,
+        )
+    except psycopg.Error as error:
+        file_path.unlink(missing_ok=True)
+        raise HTTPException(
+            status_code=500,
+            detail="Could not create video job"
+        ) from error
 
     enqueue_job(job_id)
 

@@ -1,5 +1,10 @@
 import redis
+import subprocess
+from pathlib import Path
 from database import get_db_connection
+
+OUTPUT_DIR = Path("outputs")
+OUTPUT_DIR.mkdir(exist_ok=True)
 
 client = redis.Redis(
     host="localhost",
@@ -51,9 +56,28 @@ while True:
         conn.close()
         raise RuntimeError(f"No video found for job {job_id}")
 
-    print(f"Processing job: {job_id}")
-    print(f"Original file {video['original_filename']}")
-    print(f"Input path: {video['stored_path']}")
+    video_path = video["stored_path"]
 
     cur.close()
     conn.close()
+
+    print(f"Processing job: {job_id}")
+    print(f"Original file {video['original_filename']}")
+    print(f"Input path: {video_path}")
+
+    output_path = OUTPUT_DIR / f"{job_id}_720p.mp4"
+
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-i", video_path,
+            "-vf", "scale=-2:720",
+            "-c:v", "libx264",
+            "-c:a", "aac",
+            str(output_path)
+        ],
+        check=True
+    )
+
+    print(f"Finished job {job_id}")
+    print(f"Output: {output_path}")

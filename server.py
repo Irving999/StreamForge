@@ -9,10 +9,23 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 app = FastAPI()
 UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
+
+ALLOWED_EXTENSIONS = {".mp4", ".mov", ".mkv", ".webm"}
+
+ALLOWED_CONTENT_TYPES = {
+    "video/mp4",
+    "video/quicktime",
+    "video/x-matroska",
+    "video/webm",
+}
     
 @app.post("/videos/")
 async def upload_video(file: UploadFile = File(...)):
     extension = Path(file.filename).suffix
+
+    if extension not in ALLOWED_EXTENSIONS or file.content_type not in ALLOWED_CONTENT_TYPES:
+        raise HTTPException(status_code=400, detail="Only video files are allowed")
+
     safe_filename = f"{uuid.uuid4()}{extension}"
     file_path = UPLOAD_DIR / safe_filename
 

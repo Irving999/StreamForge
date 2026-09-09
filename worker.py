@@ -20,7 +20,6 @@ while True:
     _, job_id = client.blpop("processing_queue")
 
     conn = get_db_connection()
-
     cur = conn.cursor()
 
     cur.execute(
@@ -52,9 +51,22 @@ while True:
     video = cur.fetchone()
 
     if video is None:
+        cur.execute(
+            """
+            UPDATE jobs
+            SET status = 'failed',
+                error = %s
+            WHERE id = %s
+            """,
+            ("No video found for job", job_id),
+        )
+        
+        conn.commit()
         cur.close()
         conn.close()
-        raise RuntimeError(f"No video found for job {job_id}")
+
+        print(f"Job {job_id} failed: no video found")
+        continue
 
     video_path = video["stored_path"]
 
@@ -67,20 +79,44 @@ while True:
 
     output_path = OUTPUT_DIR / f"{job_id}_720p.mp4"
 
-    subprocess.run(
-        [
-            "ffmpeg",
-            "-i", video_path,
-            "-vf", "scale=-2:720",
-            "-c:v", "libx264",
-            "-c:a", "aac",
-            str(output_path)
-        ],
-        check=True
-    )
+    try:
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-i", video_path,
+                "-vf", "scale=-2:720",
+                "-c:v", "libx264",
+                "-c:a", "aac",
+                str(output_path)
+            ],
+            check=True,
+            capture_output=True,
+            text=True
+        )
+    except subprocess.CalledProcessError as error:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        error_message = error.stderr
+
+        cur.execute(
+            """
+            UPDATE jobs
+            SET status = 'failed',
+                error = %s
+            WHERE id = %s
+            """,
+            (error_message, job_id,),
+        )
+
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        print(f"Job {job_id} failed: {error_message}")
+        continue
 
     conn = get_db_connection()
-
     cur = conn.cursor()
 
     cur.execute(
@@ -95,7 +131,6 @@ while True:
     )
 
     conn.commit()
-
     cur.close()
     conn.close()
 

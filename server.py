@@ -2,6 +2,7 @@ import shutil
 import uuid
 from pathlib import Path
 from database import get_db_connection
+from job_queue import enqueue_job
 from fastapi import FastAPI, UploadFile, File, HTTPException
 
 app = FastAPI()
@@ -56,6 +57,8 @@ async def upload_video(file: UploadFile = File(...)):
     job_id = cur.fetchone()["id"]
 
     conn.commit()
+
+    enqueue_job(job_id)
 
     cur.close()
     conn.close()

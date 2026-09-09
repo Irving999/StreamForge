@@ -1,4 +1,3 @@
-import redis
 from pathlib import Path
 from subprocess import CalledProcessError
 
@@ -8,26 +7,16 @@ from jobs import (
     mark_job_completed,
     mark_job_failed
 )
+from job_queue import dequeue_job
 from transcoder import transcode_to_720
-
 
 OUTPUT_DIR = Path("outputs")
 OUTPUT_DIR.mkdir(exist_ok=True)
 
-client = redis.Redis(
-    host="localhost",
-    port=6379,
-    db=0,
-    decode_responses=True,
-    socket_timeout=None,
-)
-
 print("Worker is waiting for job...")
 
 while True:
-    _, job_id = client.blpop("processing_queue")
-    job_id = int(job_id)
-
+    job_id = dequeue_job()
     mark_job_processing(job_id)
     video = get_job_video(job_id)
 
@@ -37,7 +26,6 @@ while True:
         continue
 
     video_path = video["stored_path"]
-
 
     print(f"Processing job: {job_id}")
     print(f"Original file {video['original_filename']}")

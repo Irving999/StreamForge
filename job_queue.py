@@ -5,7 +5,12 @@ client = redis.Redis(
     port=6379,
     db=0,
     decode_responses=True,
+    socket_timeout=None,
 )
 
 def enqueue_job(job_id: int):
     client.rpush("processing_queue", str(job_id))
+
+def dequeue_job() -> int:
+    _, job_id = client.blpop("processing_queue")
+    return int(job_id)

@@ -1,8 +1,8 @@
 import shutil
 import uuid
 from pathlib import Path
-from database import get_db_connection
 from job_queue import enqueue_job
+from jobs import get_job, create_video_and_job
 from fastapi import FastAPI, UploadFile, File, HTTPException
 
 app = FastAPI()
@@ -18,50 +18,15 @@ async def upload_video(file: UploadFile = File(...)):
     with file_path.open("wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    conn = get_db_connection()
-
-    cur = conn.cursor()
-
-    cur.execute(
-        """
-        INSERT INTO videos (
-            original_filename,
-            stored_filename,
-            stored_path,
-            content_type,
-            size
-        )
-        VALUES (%s, %s, %s, %s, %s)
-        RETURNING id;
-        """,
-        (
-            file.filename,
-            safe_filename,
-            str(file_path),
-            file.content_type,
-            file.size,
-        )
+    video_id, job_id = create_video_and_job(
+        file.filename,
+        safe_filename,
+        str(file_path),
+        file.content_type,
+        file.size,
     )
-
-    video_id = cur.fetchone()["id"]
-
-    cur.execute(
-        """
-        INSERT INTO jobs (video_id)
-        VALUES (%s)
-        RETURNING id;
-        """,
-        (video_id,)
-    )
-
-    job_id = cur.fetchone()["id"]
-
-    conn.commit()
 
     enqueue_job(job_id)
-
-    cur.close()
-    conn.close()
 
     return {
         "video_id": video_id,
@@ -74,26 +39,9 @@ async def upload_video(file: UploadFile = File(...)):
 
 @app.get("/jobs/{job_id}")
 def get_jobs(job_id: int):
-    conn = get_db_connection()
-
-    cur = conn.cursor()
-
-    cur.execute(
-        """
-        SELECT * FROM jobs
-        WHERE id = %s
-        """,
-        (job_id,),
-    )
-
-    job = cur.fetchone()
+    job = get_job(job_id)
 
     if job is None:
-        cur.close()
-        conn.close()
         raise HTTPException(status_code=404, detail="Job not found")
-
-    cur.close()
-    conn.close()
 
     return job

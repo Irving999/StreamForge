@@ -1,5 +1,74 @@
 from database import get_db_connection
 
+def get_job(job_id: int) -> dict | None:
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        SELECT * FROM jobs
+        WHERE id = %s
+        """,
+        (job_id,),
+    )
+
+    job = cur.fetchone()
+
+    cur.close()
+    conn.close()
+
+    return job
+
+def create_video_and_job(
+        original_filename: str,
+        stored_filename: str,
+        stored_path: str,
+        content_type: str | None,
+        size: int | None,
+) -> tuple[int, int]:
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        INSERT INTO videos (
+            original_filename,
+            stored_filename,
+            stored_path,
+            content_type,
+            size
+        )
+        VALUES (%s, %s, %s, %s, %s)
+        RETURNING id;
+        """,
+        (
+            original_filename,
+            stored_filename,
+            stored_path,
+            content_type,
+            size,
+        )
+    )
+
+    video_id = cur.fetchone()["id"]
+
+    cur.execute(
+        """
+        INSERT INTO jobs (video_id)
+        VALUES (%s)
+        RETURNING id;
+        """,
+        (video_id,)
+    )
+
+    job_id = cur.fetchone()["id"]
+    conn.commit()
+
+    cur.close()
+    conn.close()
+
+    return video_id, job_id
+
 def get_job_video(job_id: int) -> dict | None:
     conn = get_db_connection()
     cur = conn.cursor()

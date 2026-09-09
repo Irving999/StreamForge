@@ -2,7 +2,7 @@ import shutil
 import uuid
 from pathlib import Path
 from database import get_db_connection
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, HTTPException
 
 app = FastAPI()
 UPLOAD_DIR = Path("uploads")
@@ -42,7 +42,7 @@ async def upload_video(file: UploadFile = File(...)):
         )
     )
 
-    video_id = cur.fetchone()[0]
+    video_id = cur.fetchone()["id"]
 
     cur.execute(
         """
@@ -53,7 +53,7 @@ async def upload_video(file: UploadFile = File(...)):
         (video_id,)
     )
 
-    job_id = cur.fetchone()[0]
+    job_id = cur.fetchone()["id"]
 
     conn.commit()
 
@@ -68,3 +68,29 @@ async def upload_video(file: UploadFile = File(...)):
         "size": file.size,
         "saved_to": str(file_path)
     }
+
+@app.get("/jobs/{job_id}")
+def get_jobs(job_id: int):
+    conn = get_db_connection()
+
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        SELECT * FROM jobs
+        WHERE id = %s
+        """,
+        (job_id,),
+    )
+
+    job = cur.fetchone()
+
+    if job is None:
+        cur.close()
+        conn.close()
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    cur.close()
+    conn.close()
+
+    return job

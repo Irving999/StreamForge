@@ -79,5 +79,25 @@ while True:
         check=True
     )
 
+    conn = get_db_connection()
+
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        UPDATE jobs
+        SET status = 'completed',
+            output_path = %s,
+            completed_at = NOW()
+        WHERE id = %s
+        """,
+        (str(output_path), job_id,),
+    )
+
+    conn.commit()
+
+    cur.close()
+    conn.close()
+
     print(f"Finished job {job_id}")
     print(f"Output: {output_path}")

@@ -14,12 +14,10 @@ services:
     depends_on:
       - postgres
       - redis
-    volumes:
-      - uploads:/app/uploads
 
   worker:
     build: .
-    command: python worker.py
+    command: python -u worker.py
     env_file:
       - .env
     environment:
@@ -30,9 +28,6 @@ services:
     depends_on:
       - postgres
       - redis
-    volumes:
-      - uploads:/app/uploads
-      - outputs:/app/outputs
 
   postgres:
     image: postgres:16
@@ -49,5 +44,3 @@ services:
 
 volumes:
   postgres_data:
-  uploads:
-  outputs:

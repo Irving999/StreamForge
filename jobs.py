@@ -22,7 +22,7 @@ def get_job(job_id: int) -> dict | None:
 def create_video_and_job(
         original_filename: str,
         stored_filename: str,
-        stored_path: str,
+        input_key: str,
         content_type: str | None,
         size: int | None,
 ) -> tuple[int, int]:
@@ -34,7 +34,7 @@ def create_video_and_job(
         INSERT INTO videos (
             original_filename,
             stored_filename,
-            stored_path,
+            input_key,
             content_type,
             size
         )
@@ -44,7 +44,7 @@ def create_video_and_job(
         (
             original_filename,
             stored_filename,
-            stored_path,
+            input_key,
             content_type,
             size,
         )
@@ -69,7 +69,7 @@ def create_video_and_job(
 
     return video_id, job_id
 
-def get_job_video(job_id: int) -> dict | None:
+def get_video(job_id: int) -> dict | None:
     conn = get_db_connection()
     cur = conn.cursor()
 
@@ -78,7 +78,7 @@ def get_job_video(job_id: int) -> dict | None:
         SELECT
             jobs.id AS job_id,
             jobs.video_id,
-            videos.stored_path,
+            videos.input_key,
             videos.original_filename
         FROM jobs
         JOIN videos ON jobs.video_id = videos.id
@@ -113,7 +113,7 @@ def mark_job_processing(job_id: int) -> None:
     cur.close()
     conn.close()
 
-def mark_job_completed(job_id: int, output_path: str) -> None:
+def mark_job_completed(job_id: int, output_key: str) -> None:
     conn = get_db_connection()
     cur = conn.cursor()
     
@@ -121,11 +121,11 @@ def mark_job_completed(job_id: int, output_path: str) -> None:
         """
         UPDATE jobs
         SET status = 'completed',
-            output_path = %s,
+            output_key = %s,
             completed_at = NOW()
         WHERE id = %s
         """,
-        (output_path, job_id,),
+        (output_key, job_id,),
     )
 
     conn.commit()

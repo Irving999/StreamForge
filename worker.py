@@ -1,6 +1,8 @@
 from pathlib import Path
-from storage import download_input, upload_output
+from boto3.exceptions import S3UploadFailedError
 from subprocess import CalledProcessError
+from storage import download_input, upload_output
+from botocore.exceptions import BotoCoreError, ClientError
 
 from jobs import (
     get_video,
@@ -48,11 +50,18 @@ while True:
         mark_job_failed(job_id, error_message)
         print(f"Job {job_id} failed: {error_message}")
         continue
+    except (BotoCoreError, ClientError, S3UploadFailedError) as error:
+        message = f"S3 operation failed: {error}"
+        mark_job_failed(job_id, message)
+        print(message)
+    except OSError as error:
+        message = f"Local system operation failed: {error}"
+        mark_job_failed(job_id, message)
+        print(message)
     else:
         mark_job_completed(job_id, output_key)
+        print(f"Finished job {job_id}")
+        print(f"Output key: {output_key}")
     finally:
         video_path.unlink(missing_ok=True)
         output_path.unlink(missing_ok=True)
-
-    print(f"Finished job {job_id}")
-    print(f"Output: {output_path}")

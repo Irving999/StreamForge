@@ -16,3 +16,6 @@ def download_input(key: str, local_path: str | Path) -> None:
 
 def upload_output(key: str, local_path: str | Path) -> None:
     s3.upload_file(str(local_path), bucket_name, key)
+
+def delete_object(key: str) -> None:
+    s3.delete_object(Bucket=bucket_name, Key=key)

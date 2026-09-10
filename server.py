@@ -1,12 +1,16 @@
 import uuid
 import psycopg
+import logging
 from pathlib import Path
-from storage import upload_input
 from job_queue import enqueue_job
 from jobs import get_job, create_video_and_job
+from storage import upload_input, delete_object
+from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import FastAPI, UploadFile, File, HTTPException
 
 app = FastAPI()
+
+logger = logging.getLogger(__name__)
 
 ALLOWED_EXTENSIONS = {".mp4", ".mov", ".mkv", ".webm"}
 ALLOWED_CONTENT_TYPES = {
@@ -37,6 +41,10 @@ async def upload_video(file: UploadFile = File(...)):
             file.size,
         )
     except psycopg.Error as error:
+        try:
+            delete_object(input_key)
+        except (BotoCoreError, ClientError):
+            logger.exception("Could not delete orphaned S3 object: %s", input_key)        
         raise HTTPException(
             status_code=500,
             detail="Could not create video job"

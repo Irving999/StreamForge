@@ -1,17 +1,18 @@
+import json
 from pathlib import Path
-from boto3.exceptions import S3UploadFailedError
+from transcoder import transcode_to_720
 from subprocess import CalledProcessError
+from boto3.exceptions import S3UploadFailedError
 from storage import download_input, upload_output
+from job_queue import receive_message, delete_message
 from botocore.exceptions import BotoCoreError, ClientError
-
 from jobs import (
     get_video,
     mark_job_processing,
     mark_job_completed,
     mark_job_failed
 )
-from job_queue import dequeue_job
-from transcoder import transcode_to_720
+
 
 INPUT_DIR = Path("temp_inputs")
 INPUT_DIR.mkdir(exist_ok=True)
@@ -22,7 +23,15 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 print("Worker is waiting for job...")
 
 while True:
-    job_id = dequeue_job()
+    message = receive_message()
+
+    if message is None:
+        continue
+
+    payload = json.loads(message["Body"])
+    job_id = payload["job_id"]
+    receipt_handle = message["ReceiptHandle"]
+
     mark_job_processing(job_id)
     video = get_video(job_id)
 
@@ -60,6 +69,7 @@ while True:
         print(message)
     else:
         mark_job_completed(job_id, output_key)
+        delete_message(receipt_handle)
         print(f"Finished job {job_id}")
         print(f"Output key: {output_key}")
     finally:

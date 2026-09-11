@@ -9,11 +9,8 @@ services:
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
     depends_on:
       - postgres
-      - redis
 
   worker:
     build: .
@@ -23,11 +20,8 @@ services:
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
     depends_on:
       - postgres
-      - redis
 
   postgres:
     image: postgres:16
@@ -38,9 +32,6 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-
-  redis:
-    image: redis:7
 
 volumes:
   postgres_data:

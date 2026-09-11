@@ -1,20 +1,35 @@
 import os
-import redis
+import json
+import boto3
 from dotenv import load_dotenv
 
 load_dotenv()
 
-client = redis.Redis(
-    host=os.getenv("REDIS_HOST"),
-    port=int(os.getenv("REDIS_PORT")),
-    db=int(os.getenv("REDIS_DB")),
-    decode_responses=True,
-    socket_timeout=None,
-)
+queue_url = os.getenv("SQS_QUEUE_URL")
+sqs = boto3.client("sqs", region_name=os.getenv("AWS_REGION"))
 
-def enqueue_job(job_id: int):
-    client.rpush("processing_queue", str(job_id))
+def send_message(job_id: int) -> None:
+    sqs.send_message(
+        QueueUrl=queue_url,
+        MessageBody=json.dumps({"job_id": job_id})
+    )
 
-def dequeue_job() -> int:
-    _, job_id = client.blpop("processing_queue")
-    return int(job_id)
+def receive_message() -> dict | None:
+    response = sqs.receive_message(
+        QueueUrl=queue_url,
+        MaxNumberOfMessages=1,
+        WaitTimeSeconds=20,
+    )
+
+    messages = response.get("Messages", [])
+
+    if not messages:
+        return None
+
+    return messages[0]
+
+def delete_message(receiptHandle: str) -> None:
+    sqs.delete_message(
+        QueueUrl=queue_url,
+        ReceiptHandle=receiptHandle,
+    )

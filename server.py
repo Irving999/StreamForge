@@ -2,7 +2,7 @@ import uuid
 import psycopg
 import logging
 from pathlib import Path
-from job_queue import enqueue_job
+from job_queue import send_message
 from jobs import get_job, create_video_and_job
 from storage import upload_input, delete_object
 from botocore.exceptions import BotoCoreError, ClientError
@@ -50,7 +50,7 @@ async def upload_video(file: UploadFile = File(...)):
             detail="Could not create video job"
         ) from error
 
-    enqueue_job(job_id)
+    send_message(job_id)
 
     return {
         "video_id": video_id,

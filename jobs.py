@@ -94,7 +94,7 @@ def get_video(job_id: int) -> dict | None:
 
     return video
 
-def mark_job_processing(job_id: int) -> None:
+def mark_job_processing(job_id: int) -> bool:
     conn = get_db_connection()
     cur = conn.cursor()
 
@@ -105,14 +105,19 @@ def mark_job_processing(job_id: int) -> None:
             started_at = NOW(),
             error = NULL
         WHERE id = %s
+            AND status IN ('queued', 'failed')
+        RETURNING id
         """,
         (job_id,),
     )
 
+    claimed = cur.fetchone() is not None
+    
     conn.commit()
-
     cur.close()
     conn.close()
+
+    return claimed
 
 def mark_job_completed(job_id: int, output_key: str) -> None:
     conn = get_db_connection()

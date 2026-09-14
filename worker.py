@@ -7,6 +7,7 @@ from storage import download_input, upload_output
 from job_queue import receive_message, delete_message
 from botocore.exceptions import BotoCoreError, ClientError
 from jobs import (
+    get_job,
     get_video,
     mark_job_processing,
     mark_job_completed,
@@ -32,7 +33,14 @@ while True:
     job_id = payload["job_id"]
     receipt_handle = message["ReceiptHandle"]
 
-    mark_job_processing(job_id)
+    if not mark_job_processing(job_id):
+        job = get_job(job_id)
+
+        if job is not None and job["status"] == "completed":
+            delete_message(receipt_handle)
+
+        continue
+
     video = get_video(job_id)
 
     if video is None:
@@ -44,7 +52,6 @@ while True:
     video_path = INPUT_DIR / f"{job_id}_{Path(input_key).name}"
 
     print(f"Processing job: {job_id}")
-    print(f"Original file {video['original_filename']}")
 
     output_path = OUTPUT_DIR / f"{job_id}/720p.mp4"
     output_key = f"outputs/{job_id}/720.mp4"

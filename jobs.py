@@ -102,7 +102,8 @@ def mark_job_processing(job_id: int) -> None:
         """
         UPDATE jobs
         SET status = 'processing',
-            started_at = NOW()
+            started_at = NOW(),
+            error = NULL
         WHERE id = %s
         """,
         (job_id,),

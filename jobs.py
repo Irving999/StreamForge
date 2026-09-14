@@ -103,16 +103,23 @@ def mark_job_processing(job_id: int) -> bool:
         UPDATE jobs
         SET status = 'processing',
             started_at = NOW(),
+            heartbeat_at = NOW(),
             error = NULL
         WHERE id = %s
-            AND status IN ('queued', 'failed')
+            AND (
+                status IN ('queued', 'failed')
+                OR (
+                    status = 'processing'
+                    AND heartbeat_at < NOW() - INTERVAL '2 minutes'
+                )
+            )
         RETURNING id
         """,
         (job_id,),
     )
 
     claimed = cur.fetchone() is not None
-    
+
     conn.commit()
     cur.close()
     conn.close()
@@ -122,7 +129,7 @@ def mark_job_processing(job_id: int) -> bool:
 def mark_job_completed(job_id: int, output_key: str) -> None:
     conn = get_db_connection()
     cur = conn.cursor()
-    
+
     cur.execute(
         """
         UPDATE jobs
@@ -155,5 +162,23 @@ def mark_job_failed(job_id: int, error: str) -> None:
 
     conn.commit()
 
+    cur.close()
+    conn.close()
+
+def update_job_heartbeat(job_id: int) -> None:
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        UPDATE jobs
+        SET heartbeat_at = NOW()
+        WHERE id = %s
+            AND status = 'processing';
+        """,
+        (job_id,),
+    )
+
+    conn.commit()
     cur.close()
     conn.close()

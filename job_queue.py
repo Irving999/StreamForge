@@ -33,3 +33,13 @@ def delete_message(receiptHandle: str) -> None:
         QueueUrl=queue_url,
         ReceiptHandle=receiptHandle,
     )
+
+def extend_message_visibility(
+        receipt_handle: str,
+        visibility_timeout: int
+) -> None:
+    sqs.change_message_visibility(
+        QueueUrl=queue_url,
+        ReceiptHandle=receipt_handle,
+        VisibilityTimeout=visibility_timeout,
+    )

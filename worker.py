@@ -47,7 +47,7 @@ while True:
     print(f"Original file {video['original_filename']}")
 
     output_path = OUTPUT_DIR / f"{job_id}/720p.mp4"
-    output_key = f"output/{job_id}/720.mp4"
+    output_key = f"outputs/{job_id}/720.mp4"
 
     try:
         download_input(input_key, video_path)

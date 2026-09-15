@@ -1,13 +1,13 @@
 resource "aws_security_group" "alb" {
-  name        = "streamforge-alb-dev"
+  name        = local.alb_name
   description = "Allows HTTP access to StreamForge ALB"
-  vpc_id      = "vpc-071a5d81d3bb8828e"
+  vpc_id      = var.vpc_id
 }
 
 resource "aws_vpc_security_group_ingress_rule" "alb_http_from_home" {
   security_group_id = aws_security_group.alb.id
 
-  cidr_ipv4   = "73.162.217.228/32"
+  cidr_ipv4   = var.home_cidr
   from_port   = 80
   to_port     = 80
   ip_protocol = "tcp"
@@ -21,9 +21,9 @@ resource "aws_vpc_security_group_egress_rule" "alb_all_outbound" {
 }
 
 resource "aws_security_group" "api" {
-  name        = "streamforge-api-dev"
+  name        = local.api_name
   description = "Allows temporary API access on port 8000 from my IP"
-  vpc_id      = "vpc-071a5d81d3bb8828e"
+  vpc_id      = var.vpc_id
 }
 
 resource "aws_vpc_security_group_ingress_rule" "api_from_alb" {
@@ -44,9 +44,9 @@ resource "aws_vpc_security_group_egress_rule" "api_all_outbound" {
 }
 
 resource "aws_security_group" "worker" {
-  name        = "streamforge-worker-dev"
+  name        = local.worker_name
   description = "Security group for StreamForge Fargate worker"
-  vpc_id      = "vpc-071a5d81d3bb8828e"
+  vpc_id      = var.vpc_id
 }
 
 resource "aws_vpc_security_group_egress_rule" "worker_all_outbound" {
@@ -57,9 +57,9 @@ resource "aws_vpc_security_group_egress_rule" "worker_all_outbound" {
 }
 
 resource "aws_security_group" "rds" {
-  name        = "streamforge-rds-dev"
+  name        = local.rds_name
   description = "Created by RDS management console"
-  vpc_id      = "vpc-071a5d81d3bb8828e"
+  vpc_id      = var.vpc_id
 }
 
 resource "aws_vpc_security_group_ingress_rule" "rds_from_api" {
@@ -85,7 +85,7 @@ resource "aws_vpc_security_group_ingress_rule" "rds_from_worker" {
 resource "aws_vpc_security_group_ingress_rule" "rds_from_home" {
   security_group_id = aws_security_group.rds.id
 
-  cidr_ipv4   = "73.162.217.228/32"
+  cidr_ipv4   = var.home_cidr
   from_port   = 5432
   to_port     = 5432
   ip_protocol = "tcp"
@@ -97,4 +97,3 @@ resource "aws_vpc_security_group_egress_rule" "rds_all_outbound" {
   cidr_ipv4   = "0.0.0.0/0"
   ip_protocol = "-1"
 }
-

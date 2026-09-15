@@ -1,5 +1,5 @@
 resource "aws_iam_role" "api_task" {
-  name        = "streamforge-api-task-role"
+  name        = "${local.project}-api-task-role"
   description = "Allows ECS tasks to call AWS services on your behalf."
 
   assume_role_policy = jsonencode({
@@ -20,7 +20,7 @@ resource "aws_iam_role" "api_task" {
 }
 
 resource "aws_iam_role_policy" "api_task_access" {
-  name = "streamforge-api-task-rolePolicy"
+  name = "${local.project}-api-task-rolePolicy"
   role = aws_iam_role.api_task.id
 
   policy = jsonencode({
@@ -150,7 +150,7 @@ resource "aws_iam_role_policy_attachment" "ecs_execution" {
 }
 
 data "aws_secretsmanager_secret" "rds_credentials" {
-  name = "streamforge/dev/rds-credentials"
+  name = "${local.project}/${local.environment}/rds-credentials"
 }
 
 resource "aws_iam_role_policy" "ecs_execution_secret" {
@@ -173,4 +173,3 @@ resource "aws_iam_role_policy" "ecs_execution_secret" {
     ]
   })
 }
-

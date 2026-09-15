@@ -1,5 +1,5 @@
 resource "aws_lb" "api" {
-  name               = "streamforge-api-dev"
+  name               = local.api_name
   internal           = false
   load_balancer_type = "application"
   ip_address_type    = "ipv4"
@@ -8,22 +8,19 @@ resource "aws_lb" "api" {
     aws_security_group.alb.id
   ]
 
-  subnets = [
-    "subnet-0b56f5f4079edde72",
-    "subnet-0d00f5413bbf44517"
-  ]
+  subnets = var.alb_subnet_ids
 
   enable_deletion_protection = false
   idle_timeout               = 60
 }
 
 resource "aws_lb_target_group" "api" {
-  name             = "streamforge-api-dev"
+  name             = local.api_name
   port             = 8000
   protocol         = "HTTP"
   protocol_version = "HTTP1"
   target_type      = "ip"
-  vpc_id           = "vpc-071a5d81d3bb8828e"
+  vpc_id           = var.vpc_id
 
   health_check {
     enabled             = true
@@ -60,4 +57,3 @@ resource "aws_lb_listener" "api_http" {
     }
   }
 }
-

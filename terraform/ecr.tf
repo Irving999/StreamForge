@@ -1,4 +1,3 @@
 resource "aws_ecr_repository" "streamforge" {
-  name = "streamforge"
+  name = local.project
 }
-

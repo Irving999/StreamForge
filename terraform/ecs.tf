@@ -1,5 +1,5 @@
 resource "aws_ecs_cluster" "streamforge" {
-  name = "streamforge-dev"
+  name = local.base_name
 
   setting {
     name  = "containerInsights"
@@ -23,7 +23,7 @@ resource "aws_ecs_cluster_capacity_providers" "streamforge" {
 }
 
 resource "aws_ecs_task_definition" "api" {
-  family                   = "streamforge-api-dev"
+  family                   = local.api_name
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
 
@@ -68,7 +68,7 @@ resource "aws_ecs_task_definition" "api" {
         },
         {
           name  = "AWS_REGION"
-          value = "us-west-2"
+          value = var.aws_region
         },
         {
           name  = "SQS_QUEUE_URL"
@@ -76,15 +76,15 @@ resource "aws_ecs_task_definition" "api" {
         },
         {
           name  = "DB_PORT"
-          value = "5432"
+          value = local.db_port
         },
         {
           name  = "DB_USER"
-          value = "postgres"
+          value = local.db_user
         },
         {
           name  = "DB_NAME"
-          value = "streamforge"
+          value = local.db_name
         },
         {
           name  = "DB_HOST"
@@ -105,7 +105,7 @@ resource "aws_ecs_task_definition" "api" {
 
         options = {
           "awslogs-group"         = aws_cloudwatch_log_group.api.name
-          "awslogs-region"        = "us-west-2"
+          "awslogs-region"        = var.aws_region
           "awslogs-stream-prefix" = "ecs"
         }
       }
@@ -114,7 +114,7 @@ resource "aws_ecs_task_definition" "api" {
 }
 
 resource "aws_ecs_task_definition" "worker" {
-  family                   = "streamforge-worker-dev"
+  family                   = local.worker_name
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
 
@@ -157,7 +157,7 @@ resource "aws_ecs_task_definition" "worker" {
         },
         {
           name  = "AWS_REGION"
-          value = "us-west-2"
+          value = var.aws_region
         },
         {
           name  = "SQS_QUEUE_URL"
@@ -165,15 +165,15 @@ resource "aws_ecs_task_definition" "worker" {
         },
         {
           name  = "DB_PORT"
-          value = "5432"
+          value = local.db_port
         },
         {
           name  = "DB_USER"
-          value = "postgres"
+          value = local.db_user
         },
         {
           name  = "DB_NAME"
-          value = "streamforge"
+          value = local.db_name
         },
         {
           name  = "DB_HOST"
@@ -194,7 +194,7 @@ resource "aws_ecs_task_definition" "worker" {
 
         options = {
           "awslogs-group"         = aws_cloudwatch_log_group.worker.name
-          "awslogs-region"        = "us-west-2"
+          "awslogs-region"        = var.aws_region
           "awslogs-stream-prefix" = "ecs"
         }
       }
@@ -203,7 +203,7 @@ resource "aws_ecs_task_definition" "worker" {
 }
 
 resource "aws_ecs_service" "api" {
-  name            = "streamforge-api-dev"
+  name            = local.api_name
   cluster         = aws_ecs_cluster.streamforge.id
   task_definition = "${aws_ecs_task_definition.api.family}:${aws_ecs_task_definition.api.revision}"
 
@@ -232,12 +232,7 @@ resource "aws_ecs_service" "api" {
   health_check_grace_period_seconds = 30
 
   network_configuration {
-    subnets = [
-      "subnet-036ac47e687046e4f",
-      "subnet-0b56f5f4079edde72",
-      "subnet-0752cc2dcb7b3c6db",
-      "subnet-0d00f5413bbf44517"
-    ]
+    subnets = var.subnet_ids
 
     security_groups = [
       aws_security_group.api.id
@@ -291,12 +286,7 @@ resource "aws_ecs_service" "worker" {
   }
 
   network_configuration {
-    subnets = [
-      "subnet-036ac47e687046e4f",
-      "subnet-0b56f5f4079edde72",
-      "subnet-0752cc2dcb7b3c6db",
-      "subnet-0d00f5413bbf44517"
-    ]
+    subnets = var.subnet_ids
 
     security_groups = [
       aws_security_group.worker.id
@@ -305,4 +295,3 @@ resource "aws_ecs_service" "worker" {
     assign_public_ip = true
   }
 }
-

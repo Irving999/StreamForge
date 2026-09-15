@@ -1,8 +1,7 @@
 resource "aws_cloudwatch_log_group" "api" {
-  name = "/ecs/streamforge-api-dev"
+  name = "/ecs/${local.api_name}"
 }
 
 resource "aws_cloudwatch_log_group" "worker" {
-  name = "/ecs/streamforge-worker-dev"
+  name = "/ecs/${local.worker_name}"
 }
-

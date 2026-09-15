@@ -1,5 +1,5 @@
 resource "aws_db_instance" "postgres" {
-  identifier = "streamforge-dev"
+  identifier = local.base_name
 
   engine         = "postgres"
   instance_class = "db.t4g.micro"
@@ -27,10 +27,9 @@ resource "aws_db_instance" "postgres" {
   }
 
   tags = {
-    Environment = "dev"
-    Project     = "streamforge"
+    Environment = local.environment
+    Project     = local.project
   }
 
   vpc_security_group_ids = [aws_security_group.rds.id]
 }
-

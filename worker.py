@@ -1,25 +1,27 @@
 import json
-import psycopg
 from pathlib import Path
-from threading import Thread, Event
-from transcoder import transcode_to_720
 from subprocess import CalledProcessError
+from threading import Event, Thread
+
+import psycopg
 from boto3.exceptions import S3UploadFailedError
-from storage import download_input, upload_output
 from botocore.exceptions import BotoCoreError, ClientError
+
 from job_queue import (
-    receive_message,
     delete_message,
-    extend_message_visibility
+    extend_message_visibility,
+    receive_message,
 )
 from jobs import (
     get_job,
     get_video,
-    mark_job_processing,
     mark_job_completed,
     mark_job_failed,
+    mark_job_processing,
     update_job_heartbeat,
 )
+from storage import download_input, upload_output
+from transcoder import transcode_to_720
 
 HEARTBEAT_INTERVAL = 30
 VISIBILITY_EXTENSION = 180
@@ -27,8 +29,6 @@ VISIBILITY_EXTENSION = 180
 INPUT_DIR = Path("temp_inputs")
 OUTPUT_DIR = Path("temp_outputs")
 
-INPUT_DIR.mkdir(exist_ok=True)
-OUTPUT_DIR.mkdir(exist_ok=True)
 
 def heartbeat_loop(job_id: int, receipt_handle: str, stop_event: Event) -> None:
     while not stop_event.wait(HEARTBEAT_INTERVAL):
@@ -42,14 +42,8 @@ def heartbeat_loop(job_id: int, receipt_handle: str, stop_event: Event) -> None:
         except (BotoCoreError, ClientError) as error:
             print(f"SQS heartbeat failed for job {job_id}: {error}")
 
-print("Worker is waiting for job...")
 
-while True:
-    message = receive_message()
-
-    if message is None:
-        continue
-
+def process_message(message: dict) -> None:
     payload = json.loads(message["Body"])
     job_id = payload["job_id"]
     receipt_handle = message["ReceiptHandle"]
@@ -60,7 +54,7 @@ while True:
         if job is not None and job["status"] == "completed":
             delete_message(receipt_handle)
 
-        continue
+        return
 
     try:
         extend_message_visibility(receipt_handle, VISIBILITY_EXTENSION)
@@ -71,7 +65,7 @@ while True:
     if video is None:
         mark_job_failed(job_id, "No video found")
         print(f"Job {job_id} failed: no video found")
-        continue
+        return
 
     stop_event = Event()
 
@@ -103,7 +97,7 @@ while True:
 
         print(f"Job {job_id} failed: {error_message}")
 
-        continue
+        return
     except (BotoCoreError, ClientError, S3UploadFailedError) as error:
         error_message = f"S3 operation failed: {error}"
         mark_job_failed(job_id, error_message)
@@ -128,3 +122,22 @@ while True:
 
         video_path.unlink(missing_ok=True)
         output_path.unlink(missing_ok=True)
+
+
+def run_worker() -> None:
+    INPUT_DIR.mkdir(exist_ok=True)
+    OUTPUT_DIR.mkdir(exist_ok=True)
+
+    print("Worker is waiting for job...")
+
+    while True:
+        message = receive_message()
+
+        if message is None:
+            continue
+
+        process_message(message)
+
+
+if __name__ == "__main__":
+    run_worker()

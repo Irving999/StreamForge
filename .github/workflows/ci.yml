@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: streamforge_test
+        ports:
+          - 5433:5432
+
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DB_HOST: localhost
+      DB_PORT: 5433
+      DB_NAME: streamforge_test
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+
+      AWS_REGION: us-west-2
+      AWS_DEFAULT_REGION: us-west-2
+      AWS_EC2_METADATA_DISABLED: "true"
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+
+      S3_BUCKET: test-bucket
+      SQS_QUEUE_URL: https://example.com/test-queue
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Create test database schema
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql \
+            -h localhost \
+            -p 5433 \
+            -U postgres \
+            -d streamforge_test \
+            -f init.sql
+
+      - name: Run tests
+        run: python -m pytest -v

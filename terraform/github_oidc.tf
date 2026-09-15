@@ -25,7 +25,7 @@ resource "aws_iam_role" "github_deploy" {
         Condition = {
           StringEquals = {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-            "token.actions.githubusercontent.com:sub" = "repo:Irving999/StreamForge:ref:refs/heads/main"
+            "token.actions.githubusercontent.com:sub" = "repo:Irving999@151227512/StreamForge@1361728625:ref:refs/heads/main"
           }
         }
       }

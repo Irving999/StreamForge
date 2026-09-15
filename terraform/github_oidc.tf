@@ -68,3 +68,50 @@ resource "aws_iam_role_policy" "github_deploy_ecr" {
     ]
   })
 }
+
+resource "aws_iam_role_policy" "github_terraform_state" {
+  name = "StreamForgeTerraformState"
+  role = aws_iam_role.github_deploy.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+
+    Statement = [
+      {
+        Effect = "Allow"
+
+        Action = [
+          "s3:ListBucket"
+        ]
+
+        Resource = "arn:aws:s3:::streamforge-tfstate-879807128870-us-west-2"
+      },
+      {
+        Effect = "Allow"
+
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject"
+        ]
+
+        Resource = "arn:aws:s3:::streamforge-tfstate-879807128870-us-west-2/streamforge/dev/terraform.tfstate"
+      },
+      {
+        Effect = "Allow"
+
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:DeleteObject"
+        ]
+
+        Resource = "arn:aws:s3:::streamforge-tfstate-879807128870-us-west-2/streamforge/dev/terraform.tfstate.tflock"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "github_read_only" {
+  role       = aws_iam_role.github_deploy.name
+  policy_arn = "arn:aws:iam::aws:policy/ReadOnlyAccess"
+}

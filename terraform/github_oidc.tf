@@ -128,22 +128,11 @@ resource "aws_iam_role_policy" "github_deploy_ecs" {
         Effect = "Allow"
 
         Action = [
-          "ecs:RegisterTaskDefinition"
-        ]
-
-        Resource = "*"
-      },
-      {
-        Effect = "Allow"
-
-        Action = [
+          "ecs:RegisterTaskDefinition",
           "ecs:DeregisterTaskDefinition"
         ]
 
-        Resource = [
-          "arn:aws:ecs:${var.aws_region}:879807128870:task-definition/streamforge-api-dev:*",
-          "arn:aws:ecs:${var.aws_region}:879807128870:task-definition/streamforge-worker-dev:*"
-        ]
+        Resource = "*"
       },
       {
         Effect = "Allow"
@@ -153,8 +142,8 @@ resource "aws_iam_role_policy" "github_deploy_ecs" {
         ]
 
         Resource = [
-          aws_ecs_service.api.id,
-          aws_ecs_service.worker.id
+          "arn:aws:ecs:${var.aws_region}:879807128870:service/streamforge-dev/streamforge-api-dev",
+          "arn:aws:ecs:${var.aws_region}:879807128870:service/streamforge-dev/streamforge-worker-dev-service-6l8fdvnh"
         ]
       },
       {

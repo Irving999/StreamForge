@@ -115,3 +115,61 @@ resource "aws_iam_role_policy_attachment" "github_read_only" {
   role       = aws_iam_role.github_deploy.name
   policy_arn = "arn:aws:iam::aws:policy/ReadOnlyAccess"
 }
+
+resource "aws_iam_role_policy" "github_deploy_ecs" {
+  name = "StreamForgeGitHubECS"
+  role = aws_iam_role.github_deploy.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+
+    Statement = [
+      {
+        Effect = "Allow"
+
+        Action = [
+          "ecs:RegisterTaskDefinition"
+        ]
+
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+
+        Action = [
+          "ecs:DeregisterTaskDefinition"
+        ]
+
+        Resource = [
+          "arn:aws:ecs:${var.aws_region}:879807128870:task-definition/streamforge-api-dev:*",
+          "arn:aws:ecs:${var.aws_region}:879807128870:task-definition/streamforge-worker-dev:*"
+        ]
+      },
+      {
+        Effect = "Allow"
+
+        Action = [
+          "ecs:UpdateService"
+        ]
+
+        Resource = [
+          aws_ecs_service.api.id,
+          aws_ecs_service.worker.id
+        ]
+      },
+      {
+        Effect = "Allow"
+
+        Action = [
+          "iam:PassRole"
+        ]
+
+        Resource = [
+          aws_iam_role.api_task.arn,
+          aws_iam_role.worker_task.arn,
+          aws_iam_role.ecs_execution.arn
+        ]
+      }
+    ]
+  })
+}

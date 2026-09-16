@@ -32,3 +32,7 @@ variable "alb_subnet_ids" {
     "subnet-0d00f5413bbf44517"
   ]
 }
+
+variable "image_digest" {
+  type = string
+}

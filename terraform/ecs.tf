@@ -43,7 +43,7 @@ resource "aws_ecs_task_definition" "api" {
       name      = "api"
       essential = true
 
-      image = "${aws_ecr_repository.streamforge.repository_url}@sha256:4ff7d32e09de8215c325aa1415ddf0fe6b0f4c65b19a7a62d8c0957f5ba878ab"
+      image = "${aws_ecr_repository.streamforge.repository_url}@${var.image_digest}"
 
       environmentFiles = []
       mountPoints      = []
@@ -136,7 +136,7 @@ resource "aws_ecs_task_definition" "worker" {
       essential        = true
       workingDirectory = "/app"
 
-      image = "${aws_ecr_repository.streamforge.repository_url}@sha256:053d5bef7f711287b29f0c66a50a174c2cbe6de5b66e611c8062a446078abdb7"
+      image = "${aws_ecr_repository.streamforge.repository_url}@${var.image_digest}"
 
       command = [
         "python",
@@ -209,6 +209,8 @@ resource "aws_ecs_service" "api" {
   cluster         = aws_ecs_cluster.streamforge.id
   task_definition = "${aws_ecs_task_definition.api.family}:${aws_ecs_task_definition.api.revision}"
 
+  wait_for_steady_state = true
+
   desired_count       = 1
   launch_type         = "FARGATE"
   platform_version    = "LATEST"
@@ -259,6 +261,8 @@ resource "aws_ecs_service" "worker" {
   cluster = aws_ecs_cluster.streamforge.id
 
   task_definition = "${aws_ecs_task_definition.worker.family}:${aws_ecs_task_definition.worker.revision}"
+
+  wait_for_steady_state = true
 
   desired_count       = 1
   platform_version    = "LATEST"

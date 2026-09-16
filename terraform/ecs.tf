@@ -236,7 +236,7 @@ resource "aws_ecs_service" "api" {
   health_check_grace_period_seconds = 30
 
   network_configuration {
-    subnets = var.subnet_ids
+    subnets = var.alb_subnet_ids
 
     security_groups = [
       aws_security_group.api.id
